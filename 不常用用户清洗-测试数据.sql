@@ -23,8 +23,8 @@ INSERT INTO user (user_id, username, email, created_at, last_login_at, status) V
   ('U1017','tc_r2_offline','R2命中: 下线agent零调用+未登录70天','r2offline@test.com','2025-08-04',2026-06-30),
   ('U1018','tc_d03_login_ok_call','R2不命中: 未登录90天但agent有调用','d03ok@test.com','2025-08-04',2026-06-10),
   ('U1019','tc_d02_full_hit','R2命中: 未登录61天+agent零调用','d02hit@test.com','2025-08-04',2026-07-09),
-  ('U1020','tc_e07_recover_t7','预警回流: T-7后恢复登录','e07@test.com','2025-08-04',2026-07-11),
-  ('U1021','tc_e08_recover_t3','预警回流: T-3后产生调用','e08@test.com','2025-08-04',2026-07-10),
+  ('U1020','tc_e07_recover_t2','预警回流: T-2后恢复登录','e07@test.com','2025-08-04',2026-07-09),
+  ('U1021','tc_e08_recover_t1','预警回流: T-1产生调用','e08@test.com','2025-08-04',2026-07-10),
   ('U1022','tc_e12_bad_email','邮件失败: 邮箱非法仍禁用','e12@test.com','2025-08-04',2026-07-09),
   ('U1023','tc_e13_service_err','邮件失败: 邮件服务异常仍禁用','e13@test.com','2025-08-04',2026-07-09),
   ('U1024','tc_k06_disabled','排除场景: 已禁用不重复处理','k06@test.com','2025-08-04',2026-02-20),
@@ -81,14 +81,16 @@ INSERT INTO login_log (log_id, user_id, login_time, result) VALUES
 
 -- 预警记录表(历史数据)
 INSERT INTO disable_notice (notice_id, user_id, notice_type, send_date, send_status, fail_reason) VALUES
-  ('N5001','U1024','T-7','2025-11-12','success','NULL');
+  ('N5001','U1024','T-2','2025-11-12','success','NULL');
 
 COMMIT;
 
 -- ============ 执行排期 ============
--- T-7 (2026-09-02): 导入全部数据, 触发清洗任务, 核对T-7邮件
--- T-5 (2026-09-03): 执行 UPDATE user SET last_login_at='2026-09-03' WHERE user_id IN ('U1020','U1030');
--- T-3 (2026-09-05): 触发任务, 核对T-3邮件(U1020不应收到)
--- T-1 (2026-09-07): INSERT调用记录: ('L3006b','A2018','U1021','2026-09-07','success');
+-- ===== 测试阶段档位: 第1封=T-2, 第2封=T-1, T日禁用 (生产为T-7/T-3) =====
+-- T-2 (2026-09-06): 导入全部数据, 触发清洗任务, 核对第1封邮件(E-01)
+-- T-2 发件后(同日): UPDATE user SET last_login_at='2026-09-06' WHERE user_id='U1020'; (E-07恢复登录)
+-- T-1 (2026-09-07): 触发任务, 核对第2封邮件(E-02), U1020不应收到; 发件后执行:
+--   INSERT INTO agent_call_log VALUES ('L3006b','A2018','U1021','2026-09-07','success'); (E-08)
+--   UPDATE user SET last_login_at='2026-09-07' WHERE user_id='U1030'; (F-04实时复核)
 -- T   (2026-09-08): 触发任务, 实时复核, 核对最终status与页面登录
 -- 恢复验证: 管理员在用户管理恢复U1028 → 登录验证; 恢复后再次点击恢复(U1029/U1028)验证幂等
